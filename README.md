@@ -1,6 +1,29 @@
 # DiskLruCachePlus
 Android DiskLruCache的一个包装，增加了put和get方法，方便调用
 
+/**
+ * DiskLruCache wrapper
+ */
+public class DiskLruCachePlus {
+
+    private static final int DISK_CACHE_SIZE = 1024 * 1024 * 10; // 10MB
+    private static final String DISK_CACHE_SUBDIR = "thumbnails";
+
+    private DiskLruCache mDiskLruCache;
+
+
+    public DiskLruCachePlus(Context context) {
+        File cacheDir = getDiskCacheDir(context, DISK_CACHE_SUBDIR);
+        if (!cacheDir.exists()) {
+            cacheDir.mkdirs();
+        }
+        try {
+            mDiskLruCache = DiskLruCache.open(cacheDir, getAppVersion(context), 1, 10 * 1024 * 1024);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     public void put(String url, byte[] bitmapBytes) {
         final String realKey = getPicName(url);
         DiskLruCache.Snapshot snapShot = null;
@@ -56,3 +79,33 @@ Android DiskLruCache的一个包装，增加了put和get方法，方便调用
         }
         return bitmap;
     }
+
+
+    private String getPicName(String url) {
+        String[] urls = url.split("/");
+        String picName = urls[urls.length - 1];
+        return picName;
+    }
+
+    private File getDiskCacheDir(Context context, String uniqueName) {
+        String cachePath;
+        if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())
+                    || !Environment.isExternalStorageRemovable()) {
+            cachePath = context.getExternalCacheDir().getPath();
+        } else {
+            cachePath = context.getCacheDir().getPath();
+        }
+        return new File(cachePath + File.separator + uniqueName);
+    }
+
+    private int getAppVersion(Context context) {
+        try {
+            PackageInfo info = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
+            return info.versionCode;
+        } catch (NameNotFoundException e) {
+            e.printStackTrace();
+        }
+        return 1;
+    }
+
+}
